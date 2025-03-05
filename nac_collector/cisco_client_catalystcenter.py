@@ -178,7 +178,7 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
                             id_ = value["data"][mapping.get("id", "id")]
                             mapping_endpoint = mapping["endpoint"].replace("%v", id_)
                             mapping_data = self.fetch_data(mapping_endpoint)
-                            endpoint_dict[endpoint["name"]][index].setdefault("mappings", {})[mapping["name"]] = mapping_data["response"]
+                            endpoint_dict[endpoint["name"]][index].setdefault("data", {}).setdefault("mappings", {})[mapping["name"]] = mapping_data["response"]
 
                 if endpoint.get("children"):
                     # Create empty list of parent_endpoint_ids
