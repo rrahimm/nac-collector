@@ -1,6 +1,31 @@
 - name: transit_network
   endpoint: /dna/intent/api/v1/sda/transitNetworks
+- name: building
+  endpoint: /dna/intent/api/v1/site?type=building
+  mappings:
+  - name: assigned_credentials
+    endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+- name: floor
+  endpoint: /dna/intent/api/v1/site?type=floor
+  mappings:
+  - name: assigned_credentials
+    endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+- name: area
+  endpoint: /dna/intent/api/v1/site?type=area
+  mappings:
+  - name: assigned_credentials
+    endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+- name: credentials_cli
+  endpoint: /dna/intent/api/v2/global-credential
 - name: credentials_snmpv2_write
+  endpoint: /dna/intent/api/v2/global-credential
+- name: credentials_https_write
+  endpoint: /dna/intent/api/v2/global-credential
+- name: credentials_snmpv2_read
+  endpoint: /dna/intent/api/v2/global-credential
+- name: credentials_https_read
+  endpoint: /dna/intent/api/v2/global-credential
+- name: credentials_snmpv3
   endpoint: /dna/intent/api/v2/global-credential
 # - name: fabric_authentication_profile
 #   endpoint: /dna/intent/api/v1/business/sda/authentication-profile
