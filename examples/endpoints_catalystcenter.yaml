@@ -5,16 +5,22 @@
   mappings:
   - name: assigned_credentials
     endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+  - name: ip_pools_reservations
+    endpoint: /dna/intent/api/v1/reserve-ip-subpool?siteId=%v
 - name: floor
   endpoint: /dna/intent/api/v1/site?type=floor
   mappings:
   - name: assigned_credentials
     endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+  - name: ip_pools_reservations
+    endpoint: /dna/intent/api/v1/reserve-ip-subpool?siteId=%v
 - name: area
   endpoint: /dna/intent/api/v1/site?type=area
   mappings:
   - name: assigned_credentials
     endpoint: /dna/intent/api/v1/sites/%v/deviceCredentials
+  - name: ip_pools_reservations
+    endpoint: /dna/intent/api/v1/reserve-ip-subpool?siteId=%v
 - name: credentials_cli
   endpoint: /dna/intent/api/v2/global-credential
 - name: credentials_snmpv2_write
