@@ -44,18 +44,18 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
     """
 
     id_lookup = {
-        "/dna/intent/api/v2/credential-to-site": { 
-            "lookup_endpoint" : "/dna/intent/api/v1/site",
-            "lookup_id" : "id",
+        "/dna/intent/api/v2/credential-to-site": {
+            "lookup_endpoint": "/dna/intent/api/v1/site",
+            "lookup_id": "id",
             "new_endpoint": "/dna/intent/api/v1/sites/%v/deviceCredentials",
-            "uid": "siteId"
-            },
+            "uid": "siteId",
+        },
         "/dna/intent/api/v1/reserve-ip-subpool": {
-            "lookup_endpoint" : "/dna/intent/api/v1/site",
-            "lookup_id" : "id",
+            "lookup_endpoint": "/dna/intent/api/v1/site",
+            "lookup_id": "id",
             "new_endpoint": "/dna/intent/api/v1/reserve-ip-subpool?siteId=%v",
-            "uid": "siteId"
-            },
+            "uid": "siteId",
+        },
     }
 
     def __init__(
@@ -145,22 +145,20 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
             )
         elif isinstance(data.get("response"), dict):
             for k, v in data.get("response").items():
-                if self.mappings.get(endpoint["name"]) and self.mappings[endpoint["name"]] == k:
+                if (
+                    self.mappings.get(endpoint["name"])
+                    and self.mappings[endpoint["name"]] == k
+                ):
                     for i in v:
                         endpoint_dict[endpoint["name"]].append(
                             {
                                 "data": i,
-                                "endpoint": new_endpoint
-                                + "/"
-                                + self.get_id_value(i),
+                                "endpoint": new_endpoint + "/" + self.get_id_value(i),
                             }
                         )
                 else:
                     endpoint_dict[endpoint["name"]].append(
-                        {
-                            "data": v,
-                            "endpoint": new_endpoint
-                        }
+                        {"data": v, "endpoint": new_endpoint}
                     )
         elif data.get("response"):
             for i in data.get("response"):
@@ -172,7 +170,7 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
                 )
 
         return endpoint_dict  # Return the processed endpoint dictionary
-    
+
     def fetch_data_alternate(self, endpoint):
         """
         Retrieve data from an alternate endpoint if defined in id_lookup.
@@ -184,18 +182,28 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
             dict: The dictionary containing the data retrieved from the alternate endpoint.
         """
 
-        id_lookup_data = self.fetch_data(self.id_lookup[endpoint.get("endpoint")]["lookup_endpoint"])
-        id_list = [i[self.id_lookup[endpoint.get("endpoint")]["lookup_id"]] for i in id_lookup_data["response"]]
+        id_lookup_data = self.fetch_data(
+            self.id_lookup[endpoint.get("endpoint")]["lookup_endpoint"]
+        )
+        id_list = [
+            i[self.id_lookup[endpoint.get("endpoint")]["lookup_id"]]
+            for i in id_lookup_data["response"]
+        ]
         data_list = []
         for id_ in id_list:
-            lookup_endpoint = self.id_lookup[endpoint.get("endpoint")]["new_endpoint"].replace("%v", id_)
+            lookup_endpoint = self.id_lookup[endpoint.get("endpoint")][
+                "new_endpoint"
+            ].replace("%v", id_)
             data = self.fetch_data(lookup_endpoint)
             if data.get("response"):
                 data = data["response"]
             if isinstance(data, dict):
                 data[self.id_lookup[endpoint.get("endpoint")].get("uid", "id")] = id_
             elif isinstance(data, list):
-                data = { self.id_lookup[endpoint.get("endpoint")].get("uid", "id") : id_ , "data": data }                
+                data = {
+                    self.id_lookup[endpoint.get("endpoint")].get("uid", "id"): id_,
+                    "data": data,
+                }
             data_list.append(data)
         data = {"response": data_list}
         return data
@@ -229,7 +237,10 @@ class CiscoClientCATALYSTCENTER(CiscoClient):
 
                 # if alternate endpoint defined in id_lookup, fetch data from alternate endpoint
                 if endpoint.get("endpoint") in self.id_lookup:
-                    logger.info("Alternate endpoint found: %s", self.id_lookup[endpoint.get("endpoint")]["lookup_endpoint"])
+                    logger.info(
+                        "Alternate endpoint found: %s",
+                        self.id_lookup[endpoint.get("endpoint")]["lookup_endpoint"],
+                    )
                     data = self.fetch_data_alternate(endpoint)
                 else:
                     data = self.fetch_data(endpoint["endpoint"])
