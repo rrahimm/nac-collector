@@ -100,7 +100,12 @@ class GithubRepoWrapper:
                                 continue
                             if "rest_endpoint" in data or "get_rest_endpoint" in data:
                                 # exception for SDWAN localized_policy,cli_device_template,centralized_policy,security_policy
-                                if file.split(".yaml")[0] in ["localized_policy", "cli_device_template", "centralized_policy", "security_policy"]:
+                                if file.split(".yaml")[0] in [
+                                    "localized_policy",
+                                    "cli_device_template",
+                                    "centralized_policy",
+                                    "security_policy",
+                                ]:
                                     endpoint = data["rest_endpoint"]
                                 else:
                                     endpoint = (
