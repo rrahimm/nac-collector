@@ -104,8 +104,8 @@ class GithubRepoWrapper:
                                 and data.get("no_resource")
                             ):
                                 # Skip endpoints not used in resources -
-                                # they use the parent ID as the ID field,
-                                # which leaves no way to determine the ID field name (id_name).
+                                # they use the parent ID as the ID attribute,
+                                # which leaves no way to determine the ID attribute name (id_name).
                                 continue
                             if "rest_endpoint" in data or "get_rest_endpoint" in data:
                                 # exception for SDWAN localized_policy,cli_device_template,centralized_policy,security_policy
@@ -135,9 +135,10 @@ class GithubRepoWrapper:
                                     entry["endpoint"] = "/template/device/object/%i"
                                 else:
                                     entry["endpoint"] = endpoint
-                                id_name = data.get("id_name")
-                                if id_name is not None:
-                                    entry["id_name"] = id_name
+                                if self.solution == "meraki":
+                                    id_name = self.get_id_attr_name(data)
+                                    if id_name is not None:
+                                        entry["id_name"] = id_name
                                 endpoints_list.append(entry)
 
                     # for SDWAN feature_templates
@@ -182,6 +183,22 @@ class GithubRepoWrapper:
         self._save_to_yaml(endpoints_list)
 
         self._delete_repo()
+
+    def get_id_attr_name(self, provider_definition: dict) -> str | None:
+        id_name = provider_definition.get("id_name")
+        if id_name is not None:
+            return id_name
+
+        try:
+            return next(
+                # Fallback to tf_name for Meraki appliance_firewalled_service.
+                # TODO Convert tf_name to camelCase to handle any future cases.
+                attr.get("model_name", attr.get("tf_name"))
+                for attr in provider_definition.get("attributes", [])
+                if attr.get("id")
+            )
+        except StopIteration:
+            return None
 
     def parent_children(self, endpoints_list):
         """
