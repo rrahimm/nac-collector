@@ -19,7 +19,6 @@ class CiscoClientNDO(CiscoClient):
         self,
         username,
         password,
-        api_key,
         base_url,
         max_retries,
         retry_after,
@@ -28,14 +27,7 @@ class CiscoClientNDO(CiscoClient):
     ):
         self.domain = "DefaultAuth"
         super().__init__(
-            username,
-            password,
-            api_key,
-            base_url,
-            max_retries,
-            retry_after,
-            timeout,
-            ssl_verify,
+            username, password, base_url, max_retries, retry_after, timeout, ssl_verify
         )
 
     def authenticate(self):

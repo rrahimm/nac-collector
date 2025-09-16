@@ -31,7 +31,6 @@ class CiscoClientFMC(CiscoClient):
         self,
         username,
         password,
-        api_key,
         base_url,
         max_retries,
         retry_after,
@@ -39,14 +38,7 @@ class CiscoClientFMC(CiscoClient):
         ssl_verify,
     ):
         super().__init__(
-            username,
-            password,
-            api_key,
-            base_url,
-            max_retries,
-            retry_after,
-            timeout,
-            ssl_verify,
+            username, password, base_url, max_retries, retry_after, timeout, ssl_verify
         )
         self.x_auth_refresh_token = None
         self.domains = []
