@@ -19,7 +19,7 @@ class CiscoClientMERAKI(CiscoClient):
     This class inherits from the abstract class CiscoClient. It's used for authenticating
     with the Cisco MERAKI API and retrieving data from various endpoints.
     This is a single step authentication.
-     - API Token / Key is used for all queries
+     - API Token / Key is used for all queries - must be passed via "password" argument.
     """
 
     SOLUTION = "meraki"
@@ -28,7 +28,6 @@ class CiscoClientMERAKI(CiscoClient):
         self,
         username,
         password,
-        api_key,
         base_url,
         max_retries,
         retry_after,
@@ -38,7 +37,6 @@ class CiscoClientMERAKI(CiscoClient):
         super().__init__(
             username,
             password,
-            api_key,
             base_url,
             max_retries,
             retry_after,
@@ -56,14 +54,16 @@ class CiscoClientMERAKI(CiscoClient):
             bool: True if authentication is successful, False otherwise.
         """
 
-        if not self.api_key:
-            logger.error("API key is required for authentication.")
+        if not self.password:
+            logger.error(
+                'API key (passed via "password") is required for authentication.'
+            )
             return False
 
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "Authorization": "Bearer " + self.api_key,
+                "Authorization": "Bearer " + self.password,
                 "Content-Type": "application/json",
                 "User-Agent": "nac-collector",
             }

@@ -57,7 +57,6 @@ def configure_logging(level: str) -> None:
 @options.solution
 @options.username
 @options.password
-@options.api_key
 @options.url
 @options.git_provider
 @options.endpoints_file
@@ -68,7 +67,6 @@ def main(
     solution: str,
     username: str,
     password: str,
-    api_key: str,
     url: str,
     git_provider: bool,
     endpoints_file: str,
@@ -117,7 +115,6 @@ def main(
         client = cisco_client(
             username=username,
             password=password,
-            api_key=api_key,
             base_url=url,
             max_retries=MAX_RETRIES,
             retry_after=RETRY_AFTER,

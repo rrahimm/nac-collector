@@ -29,15 +29,6 @@ password = click.option(
     help="Password for authentication. Can also be set using the NAC_PASSWORD environment variable",
 )
 
-api_key = click.option(
-    "--api-key",
-    "-k",
-    type=str,
-    required=True,
-    envvar="NAC_API_KEY",
-    help="API key for authentication. Can also be set using the NAC_API_KEY environment variable",
-)
-
 url = click.option(
     "--url",
     "-url",

@@ -29,7 +29,6 @@ class CiscoClient(ABC):
         self,
         username,
         password,
-        api_key,
         base_url,
         max_retries,
         retry_after,
@@ -38,7 +37,6 @@ class CiscoClient(ABC):
     ):
         self.username = username
         self.password = password
-        self.api_key = api_key
         self.base_url = base_url
         self.max_retries = max_retries
         self.retry_after = retry_after
