@@ -1,9 +1,17 @@
 import logging
 import os
 import shutil
+from pathlib import Path
+from typing import Any
 
-import click
 from git import Repo
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
 from ruamel.yaml import YAML
 
 logger = logging.getLogger("main")
@@ -31,9 +39,9 @@ class GithubRepoWrapper:
                          and saves it to a new YAML file.
     """
 
-    def __init__(self, repo_url, clone_dir, solution):
+    def __init__(self, repo_url: str, clone_dir: str | Path, solution: str) -> None:
         self.repo_url = repo_url
-        self.clone_dir = clone_dir
+        self.clone_dir = str(clone_dir)
         self.solution = solution
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Initializing GithubRepoWrapper")
@@ -43,9 +51,10 @@ class GithubRepoWrapper:
         self.yaml.default_flow_style = False  # Use block style
         self.yaml.indent(sequence=2)
 
-    def _clone_repo(self):
+    def _clone_repo(self) -> None:
         # Check if the directory exists and is not empty
-        if os.path.exists(self.clone_dir) and os.listdir(self.clone_dir):
+        clone_path = Path(self.clone_dir)
+        if clone_path.exists() and any(clone_path.iterdir()):
             self.logger.debug("Directory exists and is not empty. Deleting directory.")
             # Delete the directory and its contents
             shutil.rmtree(self.clone_dir)
@@ -63,7 +72,7 @@ class GithubRepoWrapper:
             self.clone_dir,
         )
 
-    def get_definitions(self):
+    def get_definitions(self) -> list[dict[str, Any]]:
         """
         This method inspects YAML files in a specific directory, extracts endpoint information,
         and saves it to a new YAML file. It specifically looks for files ending with '.yaml'
@@ -76,36 +85,43 @@ class GithubRepoWrapper:
         If the method encounters a directory named 'feature_templates', it appends a specific
         endpoint format to the endpoints list and a corresponding dictionary to the endpoints_list list.
 
-        After traversing all files and directories, it saves the endpoints_list list to a new
-        YAML file named 'endpoints_{self.solution}.yaml' and then deletes the cloned repository.
+        After traversing all files and directories, it processes the endpoints_list and deletes
+        the cloned repository.
 
-        This method does not return any value.
+        Returns:
+            list[dict[str, Any]]: List of endpoint definitions with name and endpoint keys.
         """
-        definitions_dir = os.path.join(self.clone_dir, "gen", "definitions")
+        definitions_dir = Path(self.clone_dir) / "gen" / "definitions"
         self.logger.info("Inspecting YAML files in %s", definitions_dir)
         endpoints = []
         endpoints_list = []
 
         for root, _, files in os.walk(definitions_dir):
             # Iterate over all endpoints
-            with click.progressbar(
-                files, label="Processing terraform provider definitions"
-            ) as files_bar:
-                for file in files_bar:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=None,
+            ) as progress:
+                task = progress.add_task(
+                    "Processing terraform provider definitions", total=len(files)
+                )
+                for file in files:
+                    progress.advance(task)
                     # Exclude *_update_rank used in ISE from inspecting
                     if file.endswith(".yaml") and not file.endswith("update_rank.yaml"):
-                        with open(os.path.join(root, file), "r", encoding="utf-8") as f:
+                        with (Path(root) / file).open(encoding="utf-8") as f:
                             data = self.yaml.load(f)
                             if data.get("no_read") is not None and data.get("no_read"):
                                 continue
-                            if (
-                                self.solution == "meraki"
-                                and data.get("no_data_source")
-                                and data.get("no_resource")
+                            if data.get("no_resource") is not None and data.get(
+                                "no_resource"
                             ):
-                                # Skip endpoints not used in resources -
-                                # they use the parent ID as the ID attribute,
-                                # which leaves no way to determine the ID attribute name (id_name).
+                                continue
+                            if self.solution == "meraki" and data.get("no_data_source"):
+                                # Skip write-only endpoints.
                                 continue
                             if "rest_endpoint" in data or "get_rest_endpoint" in data:
                                 # exception for SDWAN localized_policy,cli_device_template,centralized_policy,security_policy
@@ -179,18 +195,17 @@ class GithubRepoWrapper:
             )
             self.move_meraki_root_to_child(endpoints_list, "/devices", "/organizations")
 
-        # Save endpoints to a YAML file
-        self._save_to_yaml(endpoints_list)
-
         self._delete_repo()
 
-    def get_id_attr_name(self, provider_definition: dict) -> str | None:
+        return endpoints_list
+
+    def get_id_attr_name(self, provider_definition: dict[str, Any]) -> str | None:
         id_name = provider_definition.get("id_name")
-        if id_name is not None:
+        if isinstance(id_name, str):
             return id_name
 
         try:
-            return next(
+            id_name = next(
                 # Fallback to tf_name for Meraki appliance_firewalled_service.
                 # TODO Convert tf_name to camelCase to handle any future cases.
                 attr.get("model_name", attr.get("tf_name"))
@@ -200,7 +215,11 @@ class GithubRepoWrapper:
         except StopIteration:
             return None
 
-    def parent_children(self, endpoints_list):
+        return id_name if isinstance(id_name, str) else None
+
+    def parent_children(
+        self, endpoints_list: list[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         """
         Adjusts the endpoints_list list to include parent-child relationships
         for endpoints containing `%v` and `%s`. It separates the endpoints into parent and
@@ -216,10 +235,10 @@ class GithubRepoWrapper:
         modified_endpoints = []
 
         # Dictionary to hold parents and their children based on paths
-        parent_map = {}
+        parent_map: dict[str, Any] = {}
 
         # Function to split endpoint and register it in the hierarchy
-        def register_endpoint(parts, entry):
+        def register_endpoint(parts: list[str], entry: dict[str, str]) -> None:
             current_level = parent_map
             base_endpoint = parts[0]
 
@@ -237,9 +256,14 @@ class GithubRepoWrapper:
             # Add the name to the list of names for this segment
             # This is to handle a case where there are two endpoint_data
             # with different name but same endpoint url
-            if entry["name"] not in [
-                entry["name"] for entry in current_level["entries"]
-            ]:
+            if "entries" not in current_level:
+                current_level["entries"] = []
+            current_level_names = []
+            if isinstance(current_level["entries"], list):
+                current_level_names = [
+                    entry["name"] for entry in current_level["entries"]
+                ]
+            if entry["name"] not in current_level_names:
                 current_level["entries"].append(entry)
 
         # Process each endpoint
@@ -274,7 +298,7 @@ class GithubRepoWrapper:
             register_endpoint(parts, entry)
 
         # Convert the hierarchical map to a list format
-        def build_hierarchy(node):
+        def build_hierarchy(node: dict[str, Any]) -> list[dict[str, Any]]:
             """
             Recursively build the YAML structure from the hierarchical dictionary.
             """
@@ -293,13 +317,17 @@ class GithubRepoWrapper:
 
         return modified_endpoints
 
-    def find_first_endpoint(self, endpoints_list, endpoint):
+    def find_first_endpoint(
+        self, endpoints_list: list[dict[str, Any]], endpoint: str
+    ) -> dict[str, Any]:
         _, found_endpoint = self.find_first_endpoint_with_index(
             endpoints_list, endpoint
         )
         return found_endpoint
 
-    def pop_first_endpoint(self, endpoints_list, endpoint):
+    def pop_first_endpoint(
+        self, endpoints_list: list[dict[str, Any]], endpoint: str
+    ) -> dict[str, Any]:
         index, found_endpoint = self.find_first_endpoint_with_index(
             endpoints_list, endpoint
         )
@@ -307,20 +335,23 @@ class GithubRepoWrapper:
         return found_endpoint
 
     def find_first_endpoint_with_index(
-        self, endpoints_list, endpoint
-    ) -> tuple[int, dict]:
+        self, endpoints_list: list[dict[str, Any]], endpoint: str
+    ) -> tuple[int, dict[str, Any]]:
         try:
             return next(
                 (i, entry)
                 for i, entry in enumerate(endpoints_list)
                 if entry["endpoint"] == endpoint
             )
-        except StopIteration:
-            raise Exception(f"Failed to find endpoint '{endpoint}'")
+        except StopIteration as e:
+            raise Exception(f"Failed to find endpoint '{endpoint}'") from e
 
     def move_meraki_root_to_child(
-        self, endpoints_list, root_endpoint, new_parent_endpoint
-    ):
+        self,
+        endpoints_list: list[dict[str, Any]],
+        root_endpoint: str,
+        new_parent_endpoint: str,
+    ) -> None:
         """
         Move root_endpoint to be new_parent_endpoint's child
         (replace the same child endpoint if it exists).
@@ -343,7 +374,7 @@ class GithubRepoWrapper:
         # but use /root/%v/child to fetch its children.
         target["root"] = True
 
-    def _delete_repo(self):
+    def _delete_repo(self) -> None:
         """
         This private method is responsible for deleting the cloned GitHub repository
         from the local machine. It's called after the necessary data has been extracted
@@ -352,25 +383,7 @@ class GithubRepoWrapper:
         This method does not return any value.
         """
         # Check if the directory exists
-        if os.path.exists(self.clone_dir):
+        if Path(self.clone_dir).exists():
             # Delete the directory and its contents
             shutil.rmtree(self.clone_dir)
         self.logger.info("Deleted repository")
-
-    def _save_to_yaml(self, data):
-        """
-        Saves the given data to a YAML file named 'endpoints_{solution}.yaml'.
-
-        Args:
-            data (list): The data to be saved into the YAML file.
-
-        This method does not return any value.
-        """
-        filename = f"endpoints_{self.solution}.yaml"
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                self.yaml.dump(data, f)
-            self.logger.info("Saved endpoints to %s", filename)
-        except Exception as e:
-            self.logger.error("Failed to save YAML file %s: %s", filename, str(e))
-            raise
