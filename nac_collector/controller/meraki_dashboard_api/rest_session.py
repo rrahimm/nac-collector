@@ -8,10 +8,10 @@ import requests
 from requests.utils import to_key_val_list
 from requests.compat import basestring, urlencode
 
-from meraki.__init__ import __version__
-from meraki.common import *
-from meraki.response_handler import *
-from meraki.config import *
+from .__init__ import __version__
+from .common import *
+from .response_handler import *
+from .config import *
 
 
 def encode_params(_, data):

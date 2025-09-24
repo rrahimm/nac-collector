@@ -1,5 +1,5 @@
 import platform
-from meraki.exceptions import *
+from .exceptions import *
 import re
 import sys
 import urllib.parse
