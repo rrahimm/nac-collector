@@ -1,8 +1,6 @@
 import logging
 from typing import Any
 
-from meraki.exceptions import APIError
-from meraki.rest_session import RestSession
 from rich.progress import (
     BarColumn,
     Progress,
@@ -12,6 +10,9 @@ from rich.progress import (
 )
 
 from nac_collector.controller.base import CiscoClientController
+
+from .meraki_dashboard_api.exceptions import APIError
+from .meraki_dashboard_api.rest_session import RestSession
 
 logger = logging.getLogger("main")
 
