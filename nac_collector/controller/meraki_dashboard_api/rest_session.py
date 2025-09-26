@@ -5,8 +5,6 @@ import json
 import time
 
 import requests
-from requests.utils import to_key_val_list
-from requests.compat import basestring, urlencode
 
 from .__init__ import __version__
 from .common import *
@@ -14,73 +12,11 @@ from .response_handler import *
 from .config import *
 
 
-def encode_params(_, data):
-    """Encode parameters in a piece of data.
-
-    Will successfully encode parameters when passed as a dict or a list of
-    2-tuples. Order is retained if data is a list of 2-tuples but arbitrary
-    if parameters are supplied as a dict.
-
-    MERAKI OVERRIDE:
-    By default, when parameters are supplied as a dict, only the object keys
-    are encoded.
-
-    Ex. {"param": [{"key_1":"value_1"}, {"key_2":"value_2"}]} => ?param[]=key_1&param[]=key_2
-
-    Now when parameters are supplied as a dict, dict keys will be appended to
-    parameter names. This adds support for the "array of objects" query parameter type.
-
-    Ex. {"param": [{"key_1":"value_1"}, {"key_2":"value_2"}]} => ?param[]key_1=value_1&param[]key_2=value_2
-    """
-    if isinstance(data, (str, bytes)):
-        return data
-    elif hasattr(data, "read"):
-        return data
-    elif hasattr(data, "__iter__"):
-        result = []
-        # Get each query parameter key value pair
-        for k, vs in to_key_val_list(data):
-            """
-            Turn value into list/iterable if it is not already. 
-            Ex. {"param": "value"} => {"param": ["value"]}
-            """
-            if isinstance(vs, basestring) or not hasattr(vs, "__iter__"):
-                vs = [vs]
-            for v in vs:
-                # List params
-                if v is not None and not isinstance(v, dict):
-                    """
-                    Add a query parameter key-value pair for each value to the list of results. 
-                    Ex. {"param": ["value_1", "value_2"]} => [(param, value_1), (param, value_2)]
-                    """
-                    result.append(
-                        (
-                            k.encode("utf-8") if isinstance(k, str) else k,
-                            v.encode("utf-8") if isinstance(v, str) else v,
-                        )
-                    )
-                # Dict params
-                else:
-                    """
-                    Append each dict key to the parameter name. 
-                    Add a query parameter key-value pair for each value to the list of results. 
-                    {"param": [{"key_1": "value_1"}, {"key_2": "value_2"}]} => [(param + key_1, value1), (param + key_2, value2)]
-                    """
-                    for k_1, v_1 in v.items():
-                        result.append(
-                            (
-                                (k + k_1).encode("utf-8") if isinstance(k, str) else k_1,
-                                (v + v_1).encode("utf-8") if isinstance(v, str) else v_1,
-                            )
-                        )
-        # Return URL encoded string
-        return urlencode(result, doseq=True)
-    else:
-        return data
-
-
-# Monkey patch the _encode_params from the requests library with the encode_params function above
-requests.models.RequestEncodingMixin._encode_params = encode_params
+# TODO The original dashboard-api-python monkey-patched requests.models.RequestEncodingMixin._encode_params from the requests library
+# to encode lists of dicts differently.
+# With the switch to httpx, it is not possible to do that, at least not in the same way.
+# Support for passing parameters has been removed for now, since nac-collector is not using them.
+# Restore it and implement the encoding override differently when it becomes necessary.
 
 
 def user_agent_extended(be_geo_id, caller):
@@ -345,11 +281,10 @@ class RestSession(object):
             raise APIError(metadata, response)
         return retries
 
-    def get(self, metadata, url, params=None):
+    def get(self, metadata, url):
         metadata['method'] = 'GET'
         metadata['url'] = url
-        metadata['params'] = params
-        response = self.request(metadata, 'GET', url, params=params)
+        response = self.request(metadata, 'GET', url)
         ret = None
         if response:
             if response.content.strip():
@@ -357,14 +292,13 @@ class RestSession(object):
             response.close()
         return ret
 
-    def get_pages(self, metadata, url, params=None, total_pages=-1, direction='next', event_log_end_time=None):
+    def get_pages(self, metadata, url, total_pages=-1, direction='next', event_log_end_time=None):
         pass
 
     def _get_pages_iterator(
         self,
         metadata,
         url,
-        params=None,
         total_pages=-1,
         direction="next",
         event_log_end_time=None,
@@ -379,7 +313,7 @@ class RestSession(object):
                                                                  " quotation marks).", None)
         metadata["page"] = 1
 
-        response = self.request(metadata, 'GET', url, params=params)
+        response = self.request(metadata, 'GET', url)
 
         # Get additional pages if more than one requested
         while total_pages != 0:
@@ -443,7 +377,7 @@ class RestSession(object):
             if total_pages != 0:
                 response = self.request(metadata, 'GET', nextlink)
 
-    def _get_pages_legacy(self, metadata, url, params=None, total_pages=-1, direction='next', event_log_end_time=None):
+    def _get_pages_legacy(self, metadata, url, total_pages=-1, direction='next', event_log_end_time=None):
         if isinstance(total_pages, str) and total_pages.lower() == "all":
             total_pages = -1
         elif isinstance(total_pages, str) and total_pages.isnumeric():
@@ -455,7 +389,7 @@ class RestSession(object):
 
         metadata['page'] = 1
 
-        response = self.request(metadata, 'GET', url, params=params)
+        response = self.request(metadata, 'GET', url)
 
         # Handle GETs that produce 204 No Content responses, e.g. getOrganizationClientSearch
         if response.status_code == 204:
