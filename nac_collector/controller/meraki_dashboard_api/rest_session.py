@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import json
 import time
 
-import requests
+import httpx
 
 from .__init__ import __version__
 from .common import *
@@ -78,9 +78,14 @@ class RestSession(object):
         self._caller = caller
         self.use_iterator_for_get_pages = use_iterator_for_get_pages
 
-        # Initialize a new `requests` session
-        self._req_session = requests.session()
-        self._req_session.encoding = 'utf-8'
+        # Initialize a new `httpx` client
+        mounts = {}
+        if self._requests_proxy:
+            mounts["https://"] = self._requests_proxy
+        self._httpx_client = httpx.Client(
+            timeout=self._single_request_timeout,
+            mounts=mounts,
+        )
 
         # Check the Python version
         check_python_version()
@@ -89,7 +94,7 @@ class RestSession(object):
         reject_v0_base_url(self)
 
         # Update the headers for the session
-        self._req_session.headers = {
+        self._httpx_client.headers = {
             'Authorization': 'Bearer ' + self._api_key,
             'Content-Type': 'application/json',
             'User-Agent': f'python-meraki/{self._version} ' + validate_user_agent(self._be_geo_id, self._caller),
@@ -144,21 +149,16 @@ class RestSession(object):
                         response.close()
                     if self._logger:
                         self._logger.info(f'{method} {abs_url}')
-                    response = self._req_session.request(method, abs_url, allow_redirects=False,
-                                                         **kwargs)
-                    reason = response.reason if response.reason else ''
+                    response = self._httpx_client.request(method, abs_url, **kwargs)
+                    reason = response.reason_phrase if response.reason_phrase else ''
                     status = response.status_code
-                except requests.exceptions.RequestException as e:
+                except httpx.RequestError as e:
                     if self._logger:
                         self._logger.warning(f'{tag}, {operation} - {e}, retrying in 1 second')
                     time.sleep(1)
                     retries -= 1
                     if retries == 0:
-                        if e.response and e.response.status_code:
-                            raise APIError(metadata, APIResponseError(e.__class__.__name__,
-                                                                      e.response.status_code, str(e)))
-                        else:
-                            raise APIError(metadata, APIResponseError(e.__class__.__name__, 503, str(e)))
+                        raise APIError(metadata, APIResponseError(e.__class__.__name__, None, str(e)))
                     else:
                         continue
 
@@ -221,10 +221,6 @@ class RestSession(object):
     def prepare_request(self, kwargs):
         if self._certificate_path:
             kwargs.setdefault('verify', self._certificate_path)
-        if self._requests_proxy:
-            kwargs.setdefault('proxies', {'https': self._requests_proxy})
-        kwargs.setdefault('timeout', self._single_request_timeout)
-
 
     def handle_4xx_errors(self, metadata, operation, reason, response, retries, status, tag):
         try:

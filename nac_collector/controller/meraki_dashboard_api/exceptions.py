@@ -44,8 +44,8 @@ class APIError(Exception):
             else None
         )
         self.reason = (
-            self.response.reason
-            if self.response is not None and self.response.reason
+            self.response.reason_phrase
+            if self.response is not None and self.response.reason_phrase
             else None
         )
         try:
@@ -82,7 +82,7 @@ class AsyncAPIError(Exception):
             response.status if response is not None and response.status else None
         )
         self.reason = (
-            response.reason if response is not None and response.reason else None
+            response.reason_phrase if response is not None and response.reason_phrase else None
         )
         self.message = message
         if isinstance(self.message, str):

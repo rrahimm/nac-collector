@@ -65,9 +65,16 @@ class CiscoClientMERAKI(CiscoClientController):
             )
             return False
 
-        # TODO Use self.ssl_verify, self.timeout?
+        # Note: ssl_verify is not passed -
+        # the API is only available at endpoints like api.meraki.com
+        # which should always have a valid certificate.
         self.session = RestSession(
-            logger, self.password, caller="NacCollector netascode"
+            logger,
+            self.password,
+            caller="NacCollector netascode",
+            base_url=self.base_url,
+            single_request_timeout=self.timeout,
+            maximum_retries=self.max_retries,
         )
         logger.info("Authentication successful with API key.")
         return True
