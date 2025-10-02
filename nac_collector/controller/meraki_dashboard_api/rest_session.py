@@ -7,9 +7,32 @@ import time
 import httpx
 
 from .__init__ import __version__
-from .common import *
-from .response_handler import *
-from .config import *
+from .common import (
+    check_python_version,
+    validate_user_agent,
+    reject_v0_base_url,
+    iterator_for_get_pages_bool,
+    use_iterator_for_get_pages_setter,
+    validate_base_url,
+)
+from .response_handler import handle_3xx
+from .config import (
+    DEFAULT_BASE_URL,
+    SINGLE_REQUEST_TIMEOUT,
+    CERTIFICATE_PATH,
+    REQUESTS_PROXY,
+    WAIT_ON_RATE_LIMIT,
+    NGINX_429_RETRY_WAIT_TIME,
+    ACTION_BATCH_RETRY_WAIT_TIME,
+    NETWORK_DELETE_RETRY_WAIT_TIME,
+    RETRY_4XX_ERROR,
+    RETRY_4XX_ERROR_WAIT_TIME,
+    MAXIMUM_RETRIES,
+    SIMULATE_API_CALLS,
+    BE_GEO_ID,
+    MERAKI_PYTHON_SDK_CALLER,
+    USE_ITERATOR_FOR_GET_PAGES,
+)
 
 
 # TODO The original dashboard-api-python monkey-patched requests.models.RequestEncodingMixin._encode_params from the requests library
