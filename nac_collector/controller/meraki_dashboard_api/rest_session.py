@@ -196,7 +196,7 @@ class RestSession(object):
                             if 'Retry-After' in response.headers:
                                 wait = int(response.headers['Retry-After'])
                             else:
-                                wait = random.randint(1, self._nginx_429_retry_wait_time)
+                                wait = random.randint(1, self._nginx_429_retry_wait_time) # nosec B311
                             if self._logger:
                                 self._logger.warning(f'{tag}, {operation} - {status} {reason}, retrying in {wait} seconds')
                             time.sleep(wait)
@@ -239,7 +239,7 @@ class RestSession(object):
             # message['errors'][0] is the first error, and it contains helpful text
             # here we use it to confirm that the 400 error is related to concurrent requests
             if network_delete_concurrency_error_text in message['errors'][0]:
-                wait = random.randint(30, self._network_delete_retry_wait_time)
+                wait = random.randint(30, self._network_delete_retry_wait_time) # nosec B311
                 if self._logger:
                     self._logger.warning(f'{tag}, {operation} - {status} {reason}, retrying in {wait} seconds')
                 time.sleep(wait)
@@ -262,7 +262,7 @@ class RestSession(object):
 
         # Then we check if the user asked to retry other 4xx errors, based on their session config
         elif self._retry_4xx_error:
-            wait = random.randint(1, self._retry_4xx_error_wait_time)
+            wait = random.randint(1, self._retry_4xx_error_wait_time) # nosec B311
             if self._logger:
                 self._logger.warning(f'{tag}, {operation} - {status} {reason}, retrying in {wait} seconds')
             time.sleep(wait)
