@@ -33,6 +33,10 @@ from .config import (
     MERAKI_PYTHON_SDK_CALLER,
     USE_ITERATOR_FOR_GET_PAGES,
 )
+from .exceptions import (
+    APIError,
+    APIResponseError,
+)
 
 
 # TODO The original dashboard-api-python monkey-patched requests.models.RequestEncodingMixin._encode_params from the requests library
