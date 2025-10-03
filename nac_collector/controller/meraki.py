@@ -75,7 +75,7 @@ class CiscoClientMERAKI(CiscoClientController):
             base_url=self.base_url,
             single_request_timeout=self.timeout,
             maximum_retries=self.max_retries,
-        )
+        )  # type: ignore
         logger.info("Authentication successful with API key.")
         return True
 
@@ -259,7 +259,7 @@ class CiscoClientMERAKI(CiscoClientController):
                 "tags": ["no tag"],
                 "operation": "no operation",
             }
-            data = self.session.get_pages(metadata, uri)
+            data = self.session.get_pages(metadata, uri)  # type: ignore
             return data, None
         except APIError as e:
             return None, {
