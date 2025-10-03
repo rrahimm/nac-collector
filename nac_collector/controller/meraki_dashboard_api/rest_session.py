@@ -6,7 +6,7 @@ import time
 
 import httpx
 
-from .__init__ import __version__
+from . import __version__
 from .common import (
     check_python_version,
     validate_user_agent,
