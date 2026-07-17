@@ -111,6 +111,8 @@
   children:
   - name: other_thousandeyes
     endpoint: /thousandeyes
+  - name: other_trustsec
+    endpoint: /trustsec
   - name: other_ucse
     endpoint: /ucse
 - name: policer_policy_object
