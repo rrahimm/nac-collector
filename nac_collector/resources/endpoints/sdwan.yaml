@@ -1,3 +1,5 @@
+- name: feature_templates
+  endpoint: /template/feature/object/%i
 - name: application_priority_feature_profile
   endpoint: /v1/feature-profile/sdwan/application-priority
   children:
@@ -71,6 +73,8 @@
     endpoint: /security-identity
   - name: policy_object_security_ips_signature
     endpoint: /security-ipssignature
+  - name: policy_object_security_ips_signature_set
+    endpoint: /security-ipssignatureset
   - name: policy_object_security_local_application_list
     endpoint: /security-localapp
   - name: policy_object_security_local_domain_list
@@ -334,8 +338,6 @@
       endpoint: /routing/ospfv3/ipv4
     - name: transport_wan_vpn_feature_associate_routing_ospfv3_ipv6
       endpoint: /routing/ospfv3/ipv6
-- name: feature_templates
-  endpoint: /template/feature/object/%i
 - name: advanced_inspection_profile_policy_definition
   endpoint: /template/policy/definition/advancedinspectionprofile/
 - name: advanced_malware_protection_policy_definition
